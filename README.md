@@ -26,8 +26,6 @@ The outline of the data-analysis steps (presented in B20012_DIPP_CyTOF_workflow.
 3. Calculate intensity and proportion tables for celltypes
 
     function: B200012_DIPP_CyTOF_workflow_intensity_tables_batches_subclusters
-    
-    function: B200012_DIPP_CyTOF_workflow_intensity_tables_batches_subclusters
 
 4. Do LME comparisons between Cases and Control for CD4_T and CD8_T
 
