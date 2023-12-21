@@ -17,6 +17,7 @@ The outline of the data-analysis steps (presented in B20012_DIPP_CyTOF_workflow.
 2. Do LME comparisons between Cases and Controls
 
     formula_str <- " ~ Age + Sex + Age*CaseCtrl + (1|Batch) + (1|Pair) + HLA"
+
     formula_str_per_batch <- " ~ Age + Sex + Age*CaseCtrl + (1|Pair) + HLA"
     
     function: DIPP_CyTOF_workflow_lme
