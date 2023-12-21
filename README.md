@@ -11,29 +11,29 @@ The outline of the data-analysis steps (presented in B20012_DIPP_CyTOF_workflow.
 
 1. Calculate intensity and proportion tables (batch is IAA, GADA, MULTIPLE separately):
 
-    function: B200012_DIPP_CyTOF_workflow_intensity_tables_batches
-    function: B200012_DIPP_CyTOF_workflow_intensity_tables
+    function: DIPP_CyTOF_workflow_intensity_tables_batches
+    function: DIPP_CyTOF_workflow_intensity_tables
 
 2. Do LME comparisons between Cases and Controls
 
     formula_str <- " ~ Age + Sex + Age*CaseCtrl + (1|Batch) + (1|Pair) + HLA"
     formula_str_per_batch <- " ~ Age + Sex + Age*CaseCtrl + (1|Pair) + HLA"
     
-    function: B200012_DIPP_CyTOF_workflow_lme
+    function: DIPP_CyTOF_workflow_lme
 
 3. Calculate intensity and proportion tables for celltypes
 
-    function: B200012_DIPP_CyTOF_workflow_intensity_tables_batches_subclusters
-    function: B200012_DIPP_CyTOF_workflow_intensity_tables_batches_subclusters
+    function: DIPP_CyTOF_workflow_intensity_tables_batches_subclusters
+    function: DIPP_CyTOF_workflow_intensity_tables_batches_subclusters
 
 4. Do LME comparisons between Cases and Control for CD4_T and CD8_T
 
-    function: B200012_DIPP_CyTOF_workflow_lme
+    function: DIPP_CyTOF_workflow_lme
 
 5. Re-sample tSNE for obtaining publication quality tSNE plot
 
-    function: B200012_DIPP_CyTOF_workflow_re_tSNE
+    function: DIPP_CyTOF_workflow_re_tSNE
 
 6. Draw plots for the publication
 
-    function B200012_DIPP_CyTOF_workflow_figures
+    function DIPP_CyTOF_workflow_figures
