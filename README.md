@@ -7,7 +7,7 @@ In the CyTOF workflow the set cells are clustered by their cell types defined by
 
 ## DIPP CyTOF data-analysis
 
-The outline of the data-analysis steps (presented in B20012_DIPP_CyTOF_workflow.R):
+The outline of the data-analysis steps (presented in DIPP_CyTOF_workflow.R):
 
 1. Calculate intensity and proportion tables (batch is IAA, GADA, MULTIPLE separately):
 
