@@ -102,25 +102,28 @@ DIPP_CyTOF_workflow_lme_generate_venns_of_methods <- function(CyTOF_workflow_cwd
 }
 
 
-craft_lme_row <- function(f, coefs, pr_int_table, prefix_list) {
+craft_lme_row <- function(f, pr_int_table, prefix_list) {
 
   if (FALSE) {  
     pr_int_table <- marker_intensity_tables[[j]]
     prefix_list <- c(clustername=clustername, marker=marker)
+    
+    pr_int_table <- combined_proportion_table
+    prefix_list <- c()
   }
   
   suppressWarnings(suppressMessages(fit1 <- lmer(f, data = pr_int_table, na.action = na.omit, REML=FALSE)))
 
-  out.coef <- coef(summary(fit1))[coefs ,"Estimate"]; names(out.coef) <- paste("coef",names(out.coef),sep=".")
-  out.p <-coef(summary(fit1))[coefs ,"Pr(>|t|)"]; names(out.p) <- paste("p",names(out.p),sep=".")
+  out.coef <- coef(summary(fit1))[ ,"Estimate"]; names(out.coef) <- paste("coef",names(out.coef),sep=".")
+  out.p <-coef(summary(fit1))[ ,"Pr(>|t|)"]; names(out.p) <- paste("p",names(out.p),sep=".")
   
   row <- c(prefix_list, out.coef, out.p)
   return (row)
 }
 
 add_fdr <- function(lme.table) {
-  fdr <- apply(lme.table[,grep("p.",colnames(lme.table))], 2, function(x) p.adjust(x, method="BH"))
-  colnames(fdr) <- gsub("p\\.", "fdr\\.", colnames(fdr))
+  fdr <- apply(lme.table[,grep("^p\\.",colnames(lme.table))], 2, function(x) p.adjust(x, method="BH"))
+  colnames(fdr) <- gsub("^p\\.", "fdr\\.", colnames(fdr))
   lme.table <- data.frame(lme.table, fdr, stringsAsFactors=FALSE)
   return (lme.table)
 }
@@ -150,7 +153,7 @@ DIPP_CyTOF_workflow_lme <- function(CyTOF_workflow_cwd,
   #load("RData/panel.RData")
   panel <- read.table(markers_tsv, sep="\t", header=TRUE, row.names=1, stringsAsFactors=FALSE)
   
-  coefs <- c("Age" , "SexM","CaseCtrlControl", "Age:CaseCtrlControl", "HLADR3_4", "HLADR4")
+  #coefs <- c("Age" , "SexM","CaseCtrlControl", "Age:CaseCtrlControl", "HLADR3_4", "HLADR4")
   
   #functional_markers_panel <- panel[(panel["type"] == "functional") | (panel["type"] == "lineage/functional"), ]
   #functional_markers_cname <- functional_markers_panel[["cname"]]
@@ -207,13 +210,20 @@ DIPP_CyTOF_workflow_lme <- function(CyTOF_workflow_cwd,
     
     # CELL PROPORTIONS LME 
     
-    lme.table <- matrix(nrow = 0, ncol=(12))
+    #lme.table <- matrix(nrow = 0, ncol=(12))
+    lme.table <- NULL
+    
     for (i in 1:length(clusternames)) {
       celltype <- clusternames[[i]]
       f <- formula(paste0(celltype, formula_str))
 
-      row <- craft_lme_row(f, coefs, combined_proportion_table, c())
-      lme.table <- rbind(lme.table, row)
+      row <- craft_lme_row(f, combined_proportion_table, c())
+      #message(length(row))
+      if (is.null(lme.table)) {
+        lme.table <- row
+      } else {
+        lme.table <- rbind(lme.table, row)
+      }
     }
     
     lme.table <- data.frame(lme.table)
@@ -236,16 +246,37 @@ DIPP_CyTOF_workflow_lme <- function(CyTOF_workflow_cwd,
     
     # INTENSITY TABLE LME
 
-    lme.table <- matrix(nrow = 0, ncol=14)
+    #lme.table <- matrix(nrow = 0, ncol=14)
+    lme.table <- NULL
     
     for (j in 1:length(clusternames)) {
-      clustername <- clusternames[[j]]    
+      clustername <- clusternames[[j]]
+      
+      marker_intensity_table <- marker_intensity_tables[[j]]
+      marker_intensity_table <- marker_intensity_table[, markers_cname]
+      
+      combined_intensity_table <- with(
+        list(
+          left = marker_intensity_table,
+          right = anno),
+        {
+          shared_names <- intersect(rownames(left),rownames(right))
+          cbind(left[shared_names,], right[shared_names,])
+        })
+      
+      
       for (i in 1:length(markers_cname)) {
         marker <- markers_cname[i]
         f <- formula(paste0(marker, formula_str))
 
-        row <- craft_lme_row(f, coefs, marker_intensity_tables[[j]], c(clustername=clustername, marker=marker))
-        lme.table <- rbind(lme.table, row)
+        row <- craft_lme_row(f, combined_intensity_table, c(clustername=clustername, marker=marker))
+        
+        if (is.null(lme.table)) {
+          lme.table <- row
+        } else {
+          lme.table <- rbind(lme.table, row)
+        }
+        
       }
     }
     
@@ -289,7 +320,7 @@ DIPP_CyTOF_workflow_lme <- function(CyTOF_workflow_cwd,
         celltype <- clusternames[[i]]
         f <- formula(paste0(celltype, formula_str_per_batch))
         
-        row <- craft_lme_row(f, coefs, combined_proportion_table, c())
+        row <- craft_lme_row(f, combined_proportion_table, c())
         lme.table <- rbind(lme.table, row)
       }
       
@@ -304,25 +335,6 @@ DIPP_CyTOF_workflow_lme <- function(CyTOF_workflow_cwd,
       }
 
       write.table(lme.table, file=LME_proportion_tsv_filename, sep="\t", col.names = NA)
-      
-      # CELL PROPORTIONS LME 
-      # lme_results_cell_type_proportions <- list()
-      # for (i in 1:length(clusternames)) {
-      #   celltype <- clusternames[[i]]
-      #   f <- formula(paste0(celltype, formula_str_per_batch))
-      #   lme_results_cell_type_proportions[[i]] <- lmerTest::lmer(f, data = combined_proportion_table, na.action = na.omit, REML=FALSE)
-      # }
-      # names(lme_results_cell_type_proportions) <- clusternames
-      # 
-      # df <- lmesummary_to_df(lme_results_cell_type_proportions)
-      # 
-      # if (sub_cluster != "") {
-      #   LME_proportion_tsv_filename <- paste0("out/",sub_cluster,"/tables/lme/LME_cell_type_proportions-", batch,".tsv")
-      # } else {
-      #   LME_proportion_tsv_filename <- paste0("out/tables/lme/LME_cell_type_proportions-", batch,".tsv")
-      # }
-      # 
-      # write.table(df, file=LME_proportion_tsv_filename, sep="\t", col.names = NA)
   
       # INTENSITY TABLE LME
       
@@ -334,7 +346,7 @@ DIPP_CyTOF_workflow_lme <- function(CyTOF_workflow_cwd,
           marker <- markers_cname[i]
           f <- formula(paste0(marker, formula_str_per_batch))
           
-          row <- craft_lme_row(f, coefs, marker_intensity_tables[[j]], c(clustername=clustername, marker=marker))
+          row <- craft_lme_row(f, marker_intensity_tables[[j]], c(clustername=clustername, marker=marker))
           lme.table <- rbind(lme.table, row)
         }
         

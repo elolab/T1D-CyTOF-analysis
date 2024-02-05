@@ -299,7 +299,7 @@ DIPP_CyTOF_workflow_figures <- function(CyTOF_workflow_cwd,
   load(intensity_table_rdata_filename)
 
   dir.create("out/")
-  dir.create("out/tables/")
+  dir.create("out/Aab/")
   
 #  for (j in seq_along(marker_intensity_tables)) {
 #    celltype <- names(marker_intensity_tables)[[j]]
@@ -318,14 +318,211 @@ DIPP_CyTOF_workflow_figures <- function(CyTOF_workflow_cwd,
     
 #  }
   
-  # CELL TYPE PROPORTIONS
+    celltype <- "NK_cells"
+    marker <- "CD161"
+    celltype_index <- match(celltype, names(marker_intensity_tables))
+    
+    OLS_plot_case_vs_control_per_type(paste("out/OLS-Case-vs-Control_", celltype, ".pdf", sep=""),
+                                      marker_intensity_tables[[celltype_index]],
+                                      marker,
+                                      "Marker intensity",
+                                      "Age (years)",
+                                      ylim=c(1,3)) 
+    
+    # CELL TYPE PROPORTIONS
+    
+    celltype <- "CD4_T_cells" 
+    
+    OLS_plot_case_vs_control_per_type(paste("out/OLS-Case-vs-Control_CellTypeProportions-", celltype, "-", marker, ".pdf", sep=""),
+                                      combined_proportion_table,
+                                      celltype, 
+                                      "Proportion",
+                                      "Age (years)",
+                                      ylim=c(0,0.7))
+    
+    
+    celltype <- "NK_cells" 
+    
+    OLS_plot_case_vs_control_per_type(paste("out/OLS-Case-vs-Control_CellTypeProportions-", celltype, "-", marker, ".pdf", sep=""),
+                                      combined_proportion_table,
+                                      celltype, 
+                                      "Proportion",
+                                      "Age (years)",
+                                      ylim=c(0,0.2))
+    
+
+    
+    celltype <- "TCRgd_T_cells" 
+    
+    OLS_plot_case_vs_control_per_type(paste("out/OLS-Case-vs-Control_CellTypeProportions-", celltype, ".pdf", sep=""),
+                                      combined_proportion_table,
+                                      celltype, 
+                                      "Proportion",
+                                      "Age (years)",
+                                      ylim=c(0,0.2))
+    
+        
+    celltype <- "CD8_T_cells" 
+    
+    OLS_plot_case_vs_control_per_type(paste("out/OLS-Case-vs-Control_CellTypeProportions-", celltype, "-", marker, ".pdf", sep=""),
+                                      combined_proportion_table,
+                                      celltype, 
+                                      "Proportion",
+                                      "Age (years)",
+                                      ylim=c(0,0.4))
+    
+
+    celltype <- "B_cells" 
+    
+    OLS_plot_case_vs_control_per_type(paste("out/OLS-Case-vs-Control_CellTypeProportions-", celltype, ".pdf", sep=""),
+                                      combined_proportion_table,
+                                      celltype, 
+                                      "Proportion",
+                                      "Age (years)",
+                                      ylim=c(0,0.6))
+    
+      
+    OLS_plot_case_vs_control(paste("out/OLS-Case-vs-Control_CellTypeProportions", ".pdf", sep=""),
+                             combined_proportion_table,
+                             names(marker_intensity_tables), # TODO: get cluster names from proportion table
+                             "Proportion",
+                             "Age (years)") 
+    
+        
+    OLS_plot_groups_vs_control <- function(filename,
+                                         table_,
+                                         types_,
+                                         y_axis_label,
+                                         x_axis_label) {
+      
+      if (FALSE) { 
+        filename <- paste("out/OLS-Case-vs-Control_CellTypeProportions", ".pdf", sep="")
+        table_ <- proportion_table
+        types_ <- names(marker_intensity_tables)
+        y_axis_label <- "Proportion"
+        y_axis_label <- "Age (years)"
+      }
+      
+      by_variable = "Age"
+      draw_lines = FALSE
+      
+      pdf(file=filename)
+      for (type_ in types_) {
+        
+        group <- "Control"
+        x2 <- table_[table_$CaseCtrl==group,by_variable]
+        y2 <- table_[table_$CaseCtrl==group, type_]
+
+        colormap <- c(IAA="green",
+                      GADA="orange",
+                      MULTIPLE="purple",
+                      Control="blue")
+        
+        plot(table_[,by_variable], table_[, type_], col=colormap[table_[, "Group"]], pch=19, bty="n", xlab=x_axis_label, ylab=y_axis_label, cex.axis = 1.5, cex.lab = 1.5)
+
+        mtext(type_, cex=1.5, font = 2)
+        
+        for (group in c("IAA", "GADA", "MULTIPLE", "Control")) {
+          x1 <- table_[table_$Group==group,by_variable]
+          y1 <- table_[table_$Group==group, type_]
+          
+          model1 <- lm(y1~x1)
+          
+          newx <- seq(min(x1), max(x1), length.out=length(x1))
+          preds <- predict(model1, newdata = data.frame(x1=newx), interval = 'confidence')
+          polygon(c(rev(newx), newx), c(rev(preds[ ,3]), preds[ ,2]), col = "#10106010", border = NA)
+          abline(model1, col=colormap[group], lwd=3)
+          lines(newx, preds[ ,3], lty = 'dashed', col = colormap[group])
+          lines(newx, preds[ ,2], lty = 'dashed', col = colormap[group])
+        }        
+        
+        # model2 = lm(y2~x2)
+        # 
+        # newx <- seq(min(x2), max(x2), length.out=length(x2))
+        # preds <- predict(model2, newdata = data.frame(x2=newx), interval = 'confidence')
+        # polygon(c(rev(newx), newx), c(rev(preds[ ,3]), preds[ ,2]), col = "#60101010", border = NA)
+        # abline(model2, col="blue", lwd=3)
+        # lines(newx, preds[ ,3], lty = 'dashed', col = 'blue')
+        # lines(newx, preds[ ,2], lty = 'dashed', col = 'blue')
+        
+        if (draw_lines) {
+          
+          linecolors <-  colormap#list("Case" = "red", "Control" = "blue")  
+          
+          ids = unique(paste(table_$Pair, table_$Group))
+          for(i in 1:length(ids)) {
+            id <- ids[i]
+            sel <- which(paste(table_$Pair, table_$Group)==id)
+            chunk <- table_[sel, ]
+            chunk_order <- order(chunk[, by_variable])
+            ordered_chunk <- chunk[chunk_order,]
+            lines(ordered_chunk[, by_variable], ordered_chunk[, type_], col=linecolors[[ordered_chunk[1, "Group"]]])
+          }
+        }
+        
+        
+      }
+      
+      
+      dev.off()
+    }
+    
+
+    filename <- "out/tables/lme/celltype_LME_marker_intensities"
+    df <- read.table(file=paste0(filename, "-long-0.05",".tsv"), sep="\t", header=TRUE)
+    
+    plot_a <- function(row) {
+      celltype <- row["clustername"]
+      marker <- row["marker"]
+      coefficient <- row["coefficient"]
+      
+      # celltype <- "NK_cells"
+      # marker <- "CD161"
+      
+      celltype_index <- match(celltype, names(marker_intensity_tables))
+      
+      marker_intensity_table <- marker_intensity_tables[[celltype_index]]
+      marker_intensity_table <- marker_intensity_table[, markers_cname]
+      
+      combined_intensity_table <- with(
+        list(
+          left = marker_intensity_table,
+          right = anno),
+        {
+          shared_names <- intersect(rownames(left),rownames(right))
+          cbind(left[shared_names,], right[shared_names,])
+        })
   
-  OLS_plot_case_vs_control(paste("out/OLS-Case-vs-Control_CellTypeProportions", ".pdf", sep=""),
-                           combined_proportion_table,
-                           names(marker_intensity_tables), # TODO: get cluster names from proportion table
-                           "Proportion",
-                           "Age (years)") 
-  
+      
+      OLS_plot_groups_vs_control(paste("out/Aab/OLS-Aab-vs-Control_", celltype, "-", marker,"-",coefficient, ".pdf", sep=""),
+                                 combined_intensity_table, 
+                                 marker,
+                                 "Marker intensity",
+                                 "Age (years)") 
+    
+    
+    } # a function
+
+    apply(df, 1, plot_a)
+
+    
+    filename <- "out/tables/lme/LME_cell_type_proportions"
+    df <- read.table(file=paste0(filename, "-long-0.05",".tsv"), sep="\t", header=TRUE)
+    
+    plot_b <- function(row) {
+      celltype <- row["X"]
+      coefficient <- row["coefficient"]
+        
+      OLS_plot_groups_vs_control(paste("out/Aab/OLS-Aab-vs-Control_", celltype, "-", coefficient,  "-frequencies", ".pdf", sep=""),
+                                 combined_proportion_table, 
+                                 celltype,
+                                 "Frequency",
+                                 "Age (years)") 
+    
+    }
+
+    apply(df, 1, plot_b)
+    
   #rm(proportion_table)
   
   # PROCESS BATCHES ()
@@ -349,49 +546,70 @@ DIPP_CyTOF_workflow_figures <- function(CyTOF_workflow_cwd,
     #for (j in seq_along(marker_intensity_tables)) {
     #celltype <- names(marker_intensity_tables)[[j]]
 
-    celltype <- "NK_cells"
-    marker <- "CD161"
-    celltype_index <- match(celltype, names(marker_intensity_tables))
-
-    OLS_plot_case_vs_control_per_type(paste("out/OLS-Case-vs-Control_", batch, "_", celltype, ".pdf", sep=""),
-                                            marker_intensity_tables[[celltype_index]],
-                                             marker,
-                                             "Marker intensity",
-                                             "Age (years)",
-                                              ylim=c(1,3)) 
-      
-    #}
-
-    # PROCESS CELL TYPE PROPORTIONS
-
-    celltype <- "CD4_T_cells" 
-
-    OLS_plot_case_vs_control_per_type(paste("out/OLS-Case-vs-Control_CellTypeProportions-", batch, "-", celltype, ".pdf", sep=""),
-                             combined_proportion_table,
-                             celltype, # TODO: get cluster names from proportion table
-                             "Proportion",
-                             "Age (years)",
-                             ylim=c(0,0.7))
+    # celltype <- "NK_cells"
+    # marker <- "CD161"
+    # celltype_index <- match(celltype, names(marker_intensity_tables))
+    # 
+    # OLS_plot_case_vs_control_per_type(paste("out/OLS-Case-vs-Control_", batch, "_", celltype, ".pdf", sep=""),
+    #                                         marker_intensity_tables[[celltype_index]],
+    #                                          marker,
+    #                                          "Marker intensity",
+    #                                          "Age (years)",
+    #                                           ylim=c(1,3)) 
+    #   
+    # #}
+    # 
+    # # PROCESS CELL TYPE PROPORTIONS
+    # 
+    # celltype <- "CD4_T_cells" 
+    # 
+    # OLS_plot_case_vs_control_per_type(paste("out/OLS-Case-vs-Control_CellTypeProportions-", batch, "-", celltype, ".pdf", sep=""),
+    #                          combined_proportion_table,
+    #                          celltype, # TODO: get cluster names from proportion table
+    #                          "Proportion",
+    #                          "Age (years)",
+    #                          ylim=c(0,0.7))
+    # 
+    # 
+    # celltype <- "NK_cells" 
+    # 
+    # OLS_plot_case_vs_control_per_type(paste("out/OLS-Case-vs-Control_CellTypeProportions-", batch, "-", celltype, ".pdf", sep=""),
+    #                                   combined_proportion_table,
+    #                                   celltype, # TODO: get cluster names from proportion table
+    #                                   "Proportion",
+    #                                   "Age (years)",
+    #                                   ylim=c(0,0.2))
+    # 
+    # 
+    # 
+    # celltype <- "TCRgd_T_cells"  
+    # 
+    # OLS_plot_case_vs_control_per_type(paste("out/OLS-Case-vs-Control_CellTypeProportions-", batch, "-", celltype, ".pdf", sep=""),
+    #                                   combined_proportion_table,
+    #                                   celltype, # TODO: get cluster names from proportion table
+    #                                   "Proportion",
+    #                                   "Age (years)",
+    #                                   ylim=c(0,0.2))
 
     
-    celltype <- "NK_cells" 
+    # celltype <- "CD8_T_cells" 
+    # 
+    # OLS_plot_case_vs_control_per_type(paste("out/OLS-Case-vs-Control_CellTypeProportions-", batch, "-", celltype, ".pdf", sep=""),
+    #                                   combined_proportion_table,
+    #                                   celltype, # TODO: get cluster names from proportion table
+    #                                   "Proportion",
+    #                                   "Age (years)",
+    #                                   ylim=c(0,0.4))
+    
+    celltype <- "B_cells"  
     
     OLS_plot_case_vs_control_per_type(paste("out/OLS-Case-vs-Control_CellTypeProportions-", batch, "-", celltype, ".pdf", sep=""),
                                       combined_proportion_table,
                                       celltype, # TODO: get cluster names from proportion table
                                       "Proportion",
                                       "Age (years)",
-                                      ylim=c(0,0.2))
+                                      ylim=c(0,0.6))
     
-
-    celltype <- "CD8_T_cells" 
-    
-    OLS_plot_case_vs_control_per_type(paste("out/OLS-Case-vs-Control_CellTypeProportions-", batch, "-", celltype, ".pdf", sep=""),
-                                      combined_proportion_table,
-                                      celltype, # TODO: get cluster names from proportion table
-                                      "Proportion",
-                                      "Age (years)",
-                                      ylim=c(0,0.4))
     
     rm(marker_intensity_tables)
     rm(proportion_table)
@@ -459,7 +677,10 @@ DIPP_CyTOF_workflow_figures <- function(CyTOF_workflow_cwd,
              cluster_cols = TRUE, cluster_rows = TRUE, 
              labels_col =lineage_marker_panel$cname, #labels_row = labels_row, 
              display_numbers = FALSE, number_color = "black", 
-             border_color = "white") 
+             #fontsize = 60, fontsize_number = 40,
+             #annotation_row = annotation_row, annotation_colors = annotation_colors[-2], 
+             #annotation_legend = annotation_legend,
+             border_color = "white")
     
         
     dev.off()
@@ -469,6 +690,7 @@ DIPP_CyTOF_workflow_figures <- function(CyTOF_workflow_cwd,
   hmap()
 
   # PLOT UPDATED CELL CLUSTERS, WITHOUT THE CELLS marked to be removed
+  
 
   plot_updated_cell_clusters_wo_cells_marked_to_be_removed_pdf <- function(filename,
                                                                            set,
@@ -599,6 +821,7 @@ DIPP_CyTOF_workflow_figures <- function(CyTOF_workflow_cwd,
     
     hmap(expr_heat, subtype, subtype_lineage_marker_panel)
     
+    
         
   } # subtype
   
@@ -712,7 +935,162 @@ DIPP_CyTOF_workflow_figures <- function(CyTOF_workflow_cwd,
   }
   
     
+  # OLS plot FULL SET
+  # HERE
   
+  for (subtype in c("CD4_T_cells", "CD8_T_cells")) {
+    
+    intensity_table_rdata_filename <- paste0("RData/marker_intensity_tables_", subtype, ".RData")
+    load(intensity_table_rdata_filename)
+    
+    proportion_table_rdata_filename = paste0("RData/proportion_table-", subtype, ".RData")
+    load(proportion_table_rdata_filename)
+
+    combined_proportion_table <- with(
+      list(
+        left = proportion_table,
+        right = anno),
+      {
+        shared_names <- intersect(rownames(left),rownames(right))
+        cbind(left[shared_names,], right[shared_names,])
+      })
+
+    if (subtype == "CD4_T_cells") {
+
+      celltype <- "CCR4plus"
+      marker <- "CD161"
+      celltype_index <- match(celltype, names(marker_intensity_tables))
+      
+      combined_intensity_table <- with(
+        list(
+          left = marker_intensity_tables[[celltype_index]],
+          right = anno),
+        {
+          shared_names <- intersect(rownames(left),rownames(right))
+          cbind(left[shared_names,], right[shared_names,])
+        })
+      
+      OLS_plot_case_vs_control_per_type(paste0("out/",subtype,"/OLS-Case-vs-Control_", celltype, ".pdf"),
+                                        combined_intensity_table,
+                                        marker,
+                                        "Marker intensity",
+                                        "Age (years)",
+                                        ylim=c(0.3,2.5))
+      
+      celltype <- "CD45RAplusCCR7plus"
+      marker <- "CD161"
+      celltype_index <- match(celltype, names(marker_intensity_tables))
+
+      combined_intensity_table <- with(
+        list(
+          left = marker_intensity_tables[[celltype_index]],
+          right = anno),
+        {
+          shared_names <- intersect(rownames(left),rownames(right))
+          cbind(left[shared_names,], right[shared_names,])
+        })
+      
+      
+      OLS_plot_case_vs_control_per_type(paste0("out/",subtype,"/OLS-Case-vs-Control_", celltype, ".pdf"),
+                               combined_intensity_table,
+                               marker,
+                               "Marker intensity",
+                               "Age (years)",
+                               ylim=c(0,0.25))
+
+
+      celltype <- "CD57plus"
+      marker <- "TIGIT"
+      celltype_index <- match(celltype, names(marker_intensity_tables))
+
+      combined_intensity_table <- with(
+        list(
+          left = marker_intensity_tables[[celltype_index]],
+          right = anno),
+        {
+          shared_names <- intersect(rownames(left),rownames(right))
+          cbind(left[shared_names,], right[shared_names,])
+        })
+      
+      OLS_plot_case_vs_control_per_type(paste0("out/",subtype,"/OLS-Case-vs-Control_", celltype, ".pdf"),
+                                        combined_intensity_table,
+                                        marker,
+                                        "Marker intensity",
+                                        "Age (years)",
+                                        ylim=c(0,1.7))
+
+      celltype <- "CD25plusCD127minus"
+      marker <- "CD39"
+      celltype_index <- match(celltype, names(marker_intensity_tables))
+
+      combined_intensity_table <- with(
+        list(
+          left = marker_intensity_tables[[celltype_index]],
+          right = anno),
+        {
+          shared_names <- intersect(rownames(left),rownames(right))
+          cbind(left[shared_names,], right[shared_names,])
+        })
+      
+      OLS_plot_case_vs_control_per_type(paste0("out/",subtype,"/OLS-Case-vs-Control_", celltype, ".pdf"),
+                                        combined_intensity_table,
+                                        marker,
+                                        "Marker intensity",
+                                        "Age (years)",
+                                        ylim=c(0,3.6))
+
+      celltype <- "HLA_DRplusICOSplus"
+      marker <- "CD39"
+      celltype_index <- match(celltype, names(marker_intensity_tables))
+
+      combined_intensity_table <- with(
+        list(
+          left = marker_intensity_tables[[celltype_index]],
+          right = anno),
+        {
+          shared_names <- intersect(rownames(left),rownames(right))
+          cbind(left[shared_names,], right[shared_names,])
+        })
+      
+      OLS_plot_case_vs_control_per_type(paste0("out/",subtype,"/OLS-Case-vs-Control_", celltype, ".pdf"),
+                                        combined_intensity_table,
+                                        marker,
+                                        "Marker intensity",
+                                        "Age (years)",
+                                        ylim=c(0,2))
+      
+      
+      
+    } else {
+      
+      celltype <- "CD27plusPD_1plus"
+      marker <- "CD39"
+      celltype_index <- match(celltype, names(marker_intensity_tables))
+
+      combined_intensity_table <- with(
+        list(
+          left = marker_intensity_tables[[celltype_index]],
+          right = anno),
+        {
+          shared_names <- intersect(rownames(left),rownames(right))
+          cbind(left[shared_names,], right[shared_names,])
+        })
+      
+            
+      OLS_plot_case_vs_control_per_type(paste0("out/",subtype,"/OLS-Case-vs-Control_", celltype, ".pdf"),
+                                        combined_intensity_table,
+                                        marker,
+                                        "Marker intensity",
+                                        "Age (years)",
+                                        ylim=c(0,2.5)) 
+      
+            
+    }
+    
+    
+    
+        
+  }    
   
   # OLS plots BATCH
   
