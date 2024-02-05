@@ -18,23 +18,27 @@ The outline of the data-analysis steps (presented in DIPP_CyTOF_workflow.R):
 
     formula_str <- " ~ Age + Sex + Age*CaseCtrl + (1|Batch) + (1|Pair) + HLA"
 
+    Note: The significance of the sample subsets (IAA-first, GADA-first, ≥2 Aab first groups) was further assessed using the following formula.
+    formula_str <- "~ Age + Sex + HLA + Age*Group + (1|Batch) + (1|Pair)"
+
     formula_str_per_batch <- " ~ Age + Sex + Age*CaseCtrl + (1|Pair) + HLA"
     
     function: DIPP_CyTOF_workflow_lme
 
-3. Calculate intensity and proportion tables for celltypes
+4. Calculate intensity and proportion tables for celltypes
 
     function: DIPP_CyTOF_workflow_intensity_tables_batches_subclusters
     function: DIPP_CyTOF_workflow_intensity_tables_batches_subclusters
 
-4. Do LME comparisons between Cases and Control for CD4_T and CD8_T
+5. Do LME comparisons between Cases and Control for CD4_T and CD8_T
 
     function: DIPP_CyTOF_workflow_lme
 
-5. Re-sample tSNE for obtaining publication quality tSNE plot
+6. Re-sample tSNE for obtaining publication quality tSNE plot
 
     function: DIPP_CyTOF_workflow_re_tSNE
 
-6. Draw plots for the publication
+7. Draw plots for the publication
 
     function DIPP_CyTOF_workflow_figures
+   
