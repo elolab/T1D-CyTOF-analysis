@@ -41,4 +41,12 @@ The outline of the data-analysis steps (presented in DIPP_CyTOF_workflow.R):
 7. Draw plots for the publication
 
     function DIPP_CyTOF_workflow_figures
+
+## System Requirements
+* The workflow requires R language version 4.x.
+* The workflow has been tested on R 4.1 and 4.3.
+* R installation guide: https://cran.r-project.org/doc/manuals/r-release/R-admin.html
+
+
+
    
